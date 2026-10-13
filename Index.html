@@ -1,0 +1,689 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Water Sort Puzzle - Pro Edition</title>
+    <style>
+        :root {
+            --bg-color: #1a1a2e;
+            --panel-bg: rgba(255, 255, 255, 0.05);
+            --accent: #4e54c8;
+            --accent-hover: #6c72ff;
+            --text-color: #ffffff;
+            --danger: #e74c3c;
+            --success: #2ecc71;
+            --warning: #f1c40f;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            overflow-x: hidden;
+        }
+
+        .screen {
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            max-width: 500px;
+            padding: 20px;
+            box-sizing: border-box;
+            text-align: center;
+        }
+
+        .screen.active {
+            display: flex;
+        }
+
+        h1, h2 {
+            margin-bottom: 10px;
+            text-shadow: 0 2px 10px rgba(0,0,0,0.5);
+        }
+
+        p {
+            color: #b8b8d0;
+            margin-bottom: 20px;
+        }
+
+        /* Buttons */
+        .btn {
+            background-color: var(--accent);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            font-size: 18px;
+            border-radius: 12px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: transform 0.1s, background-color 0.2s;
+            box-shadow: 0 4px 15px rgba(78, 84, 200, 0.4);
+            margin: 8px;
+        }
+
+        .btn:hover {
+            background-color: var(--accent-hover);
+            transform: translateY(-2px);
+        }
+
+        .btn:active {
+            transform: translateY(1px);
+        }
+
+        .secondary-btn {
+            background-color: #3b3b5c;
+            padding: 8px 16px;
+            font-size: 14px;
+        }
+
+        /* Main Menu */
+        #main-menu h1 {
+            font-size: 2.8rem;
+            color: var(--warning);
+        }
+
+        /* Level Grid */
+        #level-grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 12px;
+            max-height: 380px;
+            overflow-y: auto;
+            width: 100%;
+            padding: 10px;
+            background: rgba(0,0,0,0.2);
+            border-radius: 15px;
+            box-sizing: border-box;
+        }
+
+        .level-btn {
+            background-color: #2b2b48;
+            border: 2px solid #4a4a75;
+            color: white;
+            padding: 12px 0;
+            font-size: 15px;
+            font-weight: bold;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+        }
+
+        .level-btn:hover {
+            background-color: var(--accent);
+            border-color: var(--text-color);
+            transform: scale(1.05);
+        }
+
+        .level-stars {
+            font-size: 11px;
+            color: var(--warning);
+            letter-spacing: 1px;
+        }
+
+        /* Game UI Top Bar */
+        .game-header {
+            display: flex;
+            justify-content: space-between;
+            width: 100%;
+            max-width: 420px;
+            margin-bottom: 15px;
+            font-size: 15px;
+            font-weight: bold;
+        }
+
+        .stat-box {
+            background: var(--panel-bg);
+            padding: 8px 12px;
+            border-radius: 8px;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+
+        #game-board {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 18px;
+            justify-content: center;
+            max-width: 450px;
+            padding: 25px 20px;
+            background: var(--panel-bg);
+            border-radius: 20px;
+            border: 1px solid rgba(255,255,255,0.1);
+            min-height: 250px;
+            align-items: center;
+            position: relative;
+        }
+
+        /* Bottle Styles & Animation */
+        .bottle {
+            width: 50px;
+            height: 180px;
+            border: 4px solid #ffffff;
+            border-top: none;
+            border-radius: 0 0 15px 15px;
+            display: flex;
+            flex-direction: column-reverse;
+            overflow: hidden;
+            cursor: pointer;
+            background-color: rgba(255, 255, 255, 0.03);
+            transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), border-color 0.2s, box-shadow 0.2s;
+            position: relative;
+            transform-origin: bottom center;
+        }
+
+        .bottle.selected {
+            transform: translateY(-15px);
+            border-color: var(--warning);
+            box-shadow: 0 0 20px rgba(241, 196, 15, 0.6);
+        }
+
+        .bottle.hint-target {
+            border-color: var(--success);
+            box-shadow: 0 0 20px rgba(46, 204, 113, 0.6);
+            animation: pulseHint 0.8s infinite alternate;
+        }
+
+        @keyframes pulseHint {
+            0% { transform: translateY(0) scale(1); }
+            100% { transform: translateY(-8px) scale(1.05); }
+        }
+
+        /* Pouring Transformations */
+        .bottle.tilt-left {
+            transform: rotate(-35deg) translate(-30px, -10px);
+        }
+
+        .bottle.tilt-right {
+            transform: rotate(35deg) translate(30px, -10px);
+        }
+
+        .water-unit {
+            width: 100%;
+            height: 25%;
+            transition: background-color 0.3s;
+        }
+
+        /* Pour Stream Effect Container */
+        #pour-stream {
+            position: absolute;
+            pointer-events: none;
+            width: 8px;
+            background: transparent;
+            z-index: 5;
+            transition: all 0.3s ease-in-out;
+        }
+
+        .game-controls {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        /* Overlay Popups */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.8);
+            justify-content: center;
+            align-items: center;
+            z-index: 10;
+        }
+        .modal.active {
+            display: flex;
+        }
+        .modal-content {
+            background: #23233c;
+            padding: 30px;
+            border-radius: 20px;
+            text-align: center;
+            border: 2px solid #4a4a75;
+            max-width: 320px;
+            width: 85%;
+        }
+
+        .star-display {
+            font-size: 32px;
+            color: var(--warning);
+            margin: 10px 0 20px 0;
+            letter-spacing: 5px;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- 1. MAIN MENU SCREEN -->
+    <div id="main-menu" class="screen active">
+        <h1>🧪 Liquid Sort Pro</h1>
+        <p>Master 30 levels with Star ratings & Hint guidance!</p>
+        <button class="btn" onclick="startAudioAndGoToLevels()">Play Game</button>
+        <button class="btn secondary-btn" id="music-toggle-btn" onclick="toggleMusic()">🔊 Music: OFF</button>
+    </div>
+
+    <!-- 2. LEVEL SELECT SCREEN -->
+    <div id="level-menu" class="screen">
+        <h2>Select Level</h2>
+        <p>Choose your challenge</p>
+        <div id="level-grid"></div>
+        <button class="btn secondary-btn" style="margin-top: 15px;" onclick="showScreen('main-menu')">Back to Menu</button>
+    </div>
+
+    <!-- 3. GAMEPLAY SCREEN -->
+    <div id="game-screen" class="screen">
+        <div class="game-header">
+            <div class="stat-box" id="level-indicator">Level 1</div>
+            <div class="stat-box" id="tries-indicator">Tries: 15</div>
+            <div class="stat-box" id="hints-indicator" style="cursor: pointer; color: var(--warning);" onclick="useHint()">💡 Hint (2)</div>
+        </div>
+
+        <div id="game-board">
+            <div id="pour-stream"></div>
+        </div>
+
+        <div class="game-controls">
+            <button class="btn secondary-btn" onclick="restartLevel()">Reset</button>
+            <button class="btn secondary-btn" onclick="showScreen('level-menu')">Level Select</button>
+        </div>
+    </div>
+
+    <!-- WIN MODAL -->
+    <div id="win-modal" class="modal">
+        <div class="modal-content">
+            <h2 style="color: var(--success);">🎉 Level Cleared!</h2>
+            <div class="star-display" id="win-stars">⭐⭐⭐</div>
+            <p id="win-text">Fantastic puzzle-solving!</p>
+            <button class="btn" onclick="nextLevel()">Next Level</button>
+            <button class="btn secondary-btn" onclick="showScreen('level-menu')">Level Select</button>
+        </div>
+    </div>
+
+    <!-- LOSE MODAL -->
+    <div id="lose-modal" class="modal">
+        <div class="modal-content">
+            <h2 style="color: var(--danger);">💥 Out of Tries!</h2>
+            <p>You ran out of moves on this bottle puzzle.</p>
+            <button class="btn" onclick="restartLevel()">Try Again</button>
+            <button class="btn secondary-btn" onclick="showScreen('level-menu')">Level Select</button>
+        </div>
+    </div>
+
+    <script>
+        const BOTTLE_CAPACITY = 4;
+        const MASTER_COLORS = ['#e74c3c', '#3498db', '#2ecc71', '#f1c40f', '#9b59b6', '#e67e22', '#1abc9c', '#e84393'];
+        
+        let currentLevel = 1;
+        let bottles = [];
+        let selectedBottleIndex = null;
+        let remainingTries = 15;
+        let remainingHints = 2;
+        let isAnimating = false;
+        let levelData = {}; // Stores star progress and records saved in localStorage
+
+        // Load saved game progress from localStorage
+        function loadProgress() {
+            const saved = localStorage.getItem('water_sort_progress');
+            if (saved) {
+                levelData = JSON.parse(saved);
+            } else {
+                levelData = {};
+            }
+        }
+
+        function saveProgress() {
+            localStorage.setItem('water_sort_progress', JSON.stringify(levelData));
+        }
+
+        loadProgress();
+
+        // --- WEB AUDIO API CHIPTUNE BGM ---
+        let audioCtx = null;
+        let isMusicPlaying = false;
+        let musicTimer = null;
+
+        function toggleMusic() {
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+            isMusicPlaying = !isMusicPlaying;
+            const btn = document.getElementById('music-toggle-btn');
+            if (isMusicPlaying) {
+                btn.innerText = "🔊 Music: ON";
+                if (audioCtx.state === 'suspended') audioCtx.resume();
+                startBGM();
+            } else {
+                btn.innerText = "🔊 Music: OFF";
+                stopBGM();
+            }
+        }
+
+        function startAudioAndGoToLevels() {
+            if (!isMusicPlaying) toggleMusic();
+            showScreen('level-menu');
+        }
+
+        function startBGM() {
+            if (musicTimer) clearInterval(musicTimer);
+            const melody = [261.63, 329.63, 392.00, 523.25, 392.00, 329.63, 293.66, 349.23, 440.00, 523.25, 440.00, 349.23];
+            let noteIndex = 0;
+
+            musicTimer = setInterval(() => {
+                if (!isMusicPlaying || !audioCtx) return;
+                try {
+                    const osc = audioCtx.createOscillator();
+                    const gain = audioCtx.createGain();
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(melody[noteIndex], audioCtx.currentTime);
+                    
+                    gain.gain.setValueAtTime(0.04, audioCtx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 0.25);
+
+                    osc.connect(gain);
+                    gain.connect(audioCtx.destination);
+
+                    osc.start();
+                    osc.stop(audioCtx.currentTime + 0.28);
+
+                    noteIndex = (noteIndex + 1) % melody.length;
+                } catch(e) {}
+            }, 250);
+        }
+
+        function stopBGM() {
+            if (musicTimer) clearInterval(musicTimer);
+        }
+
+        // --- NAVIGATION & SCREENS ---
+        function showScreen(screenId) {
+            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+            document.getElementById(screenId).classList.add('active');
+            document.querySelectorAll('.modal').forEach(m => m.classList.remove('active'));
+            if(screenId === 'level-menu') buildLevelGrid();
+        }
+
+        function buildLevelGrid() {
+            const grid = document.getElementById('level-grid');
+            grid.innerHTML = '';
+            for (let i = 1; i <= 30; i++) {
+                const btn = document.createElement('button');
+                btn.classList.add('level-btn');
+                
+                const starsCount = levelData[i] ? levelData[i].stars : 0;
+                let starsStr = '☆☆☆';
+                if (starsCount === 1) starsStr = '★☆☆';
+                if (starsCount === 2) starsStr = '★★☆';
+                if (starsCount === 3) starsStr = '★★★';
+
+                btn.innerHTML = `<span>${i}</span><span class="level-stars">${starsStr}</span>`;
+                btn.onclick = () => loadLevel(i);
+                grid.appendChild(btn);
+            }
+        }
+
+        // --- LEVEL GENERATION ---
+        function loadLevel(lvl) {
+            currentLevel = lvl;
+            selectedBottleIndex = null;
+            isAnimating = false;
+
+            let colorCount;
+            if (lvl <= 10) colorCount = 3 + Math.floor((lvl - 1) / 5);
+            else if (lvl <= 20) colorCount = 5 + Math.floor((lvl - 11) / 5);
+            else colorCount = 7 + Math.floor((lvl - 21) / 6);
+
+            if (colorCount > MASTER_COLORS.length) colorCount = MASTER_COLORS.length;
+
+            const emptyCount = (lvl >= 25) ? 1 : 2;
+            const activeColors = MASTER_COLORS.slice(0, colorCount);
+
+            let colorPool = [];
+            activeColors.forEach(col => {
+                for (let k = 0; k < BOTTLE_CAPACITY; k++) colorPool.push(col);
+            });
+
+            bottles = [];
+            for (let i = 0; i < colorCount; i++) bottles.push([]);
+            for (let i = 0; i < emptyCount; i++) bottles.push([]);
+
+            colorPool.sort(() => Math.random() - 0.5);
+            let poolIndex = 0;
+            for (let i = 0; i < colorCount; i++) {
+                for (let k = 0; k < BOTTLE_CAPACITY; k++) {
+                    bottles[i].push(colorPool[poolIndex++]);
+                }
+            }
+
+            // Tries scale and hints allowance based on level difficulty
+            remainingTries = Math.max(12, 48 - (lvl * 1));
+            remainingHints = lvl <= 10 ? 3 : (lvl <= 20 ? 2 : 1);
+
+            document.getElementById('level-indicator').innerText = `Level ${currentLevel}`;
+            updateStatsDisplay();
+            showScreen('game-screen');
+            renderBoard();
+        }
+
+        function restartLevel() {
+            loadLevel(currentLevel);
+        }
+
+        function nextLevel() {
+            if (currentLevel < 30) {
+                loadLevel(currentLevel + 1);
+            } else {
+                alert('🏆 Amazing! You completed all 30 levels!');
+                showScreen('level-menu');
+            }
+        }
+
+        // --- HINT ENGINE LOGIC ---
+        function useHint() {
+            if (isAnimating || remainingHints <= 0) return;
+
+            // Simple heuristic to find a valid useful pour move
+            let validMoveFound = null;
+            for (let i = 0; i < bottles.length; i++) {
+                if (bottles[i].length === 0) continue;
+                for (let j = 0; j < bottles.length; j++) {
+                    if (i === j) continue;
+                    const source = bottles[i];
+                    const target = bottles[j];
+                    if (target.length >= BOTTLE_CAPACITY) continue;
+
+                    const topColor = source[source.length - 1];
+                    const targetTop = target[target.length - 1];
+
+                    if (target.length === 0 || targetTop === topColor) {
+                        // Avoid undoing an immediate reverse move unless necessary
+                        validMoveFound = { from: i, to: j };
+                        break;
+                    }
+                }
+                if (validMoveFound) break;
+            }
+
+            if (validMoveFound) {
+                remainingHints--;
+                updateStatsDisplay();
+                
+                // Highlight source and target bottles temporarily
+                const bottleNodes = document.querySelectorAll('.bottle');
+                bottleNodes[validMoveFound.from].classList.add('selected');
+                bottleNodes[validMoveFound.to].classList.add('hint-target');
+
+                setTimeout(() => {
+                    bottleNodes[validMoveFound.from].classList.remove('selected');
+                    bottleNodes[validMoveFound.to].classList.remove('hint-target');
+                }, 1500);
+            } else {
+                alert('No obvious moves available!');
+            }
+        }
+
+        // --- GAMEPLAY & ANIMATED POURING ---
+        function renderBoard() {
+            const board = document.getElementById('game-board');
+            // Keep the stream element intact
+            const streamEl = document.getElementById('pour-stream');
+            board.innerHTML = '';
+            board.appendChild(streamEl);
+
+            bottles.forEach((bottle, bIndex) => {
+                const bottleDiv = document.createElement('div');
+                bottleDiv.classList.add('bottle');
+                if (bIndex === selectedBottleIndex) {
+                    bottleDiv.classList.add('selected');
+                }
+
+                bottle.forEach(color => {
+                    const waterDiv = document.createElement('div');
+                    waterDiv.classList.add('water-unit');
+                    waterDiv.style.backgroundColor = color;
+                    bottleDiv.appendChild(waterDiv);
+                });
+
+                bottleDiv.onclick = () => handleBottleClick(bIndex);
+                board.appendChild(bottleDiv);
+            });
+        }
+
+        async function handleBottleClick(index) {
+            if (isAnimating) return;
+
+            if (selectedBottleIndex === null) {
+                if (bottles[index].length > 0) {
+                    selectedBottleIndex = index;
+                    renderBoard();
+                }
+            } else if (selectedBottleIndex === index) {
+                selectedBottleIndex = null;
+                renderBoard();
+            } else {
+                const fromIdx = selectedBottleIndex;
+                const toIdx = index;
+                selectedBottleIndex = null;
+
+                if (canPour(fromIdx, toIdx)) {
+                    isAnimating = true;
+                    await animatePour(fromIdx, toIdx);
+                    executePour(fromIdx, toIdx);
+                    remainingTries--;
+                    updateStatsDisplay();
+                    isAnimating = false;
+                    renderBoard();
+                    checkGameState();
+                } else {
+                    renderBoard();
+                }
+            }
+        }
+
+        function canPour(fromIdx, toIdx) {
+            const source = bottles[fromIdx];
+            const target = bottles[toIdx];
+            if (source.length === 0) return false;
+            if (target.length >= BOTTLE_CAPACITY) return false;
+
+            const topColor = source[source.length - 1];
+            const targetTop = target[target.length - 1];
+            return target.length === 0 || targetTop === topColor;
+        }
+
+        // Fluid Tilting & Pouring Animation
+        async function animatePour(fromIdx, toIdx) {
+            const bottleNodes = document.querySelectorAll('.bottle');
+            const sourceNode = bottleNodes[fromIdx];
+            const targetNode = bottleNodes[toIdx];
+            const stream = document.getElementById('pour-stream');
+
+            const sourceRect = sourceNode.getBoundingClientRect();
+            const targetRect = targetNode.getBoundingClientRect();
+            const boardRect = document.getElementById('game-board').getBoundingClientRect();
+
+            const isRightSide = targetRect.left > sourceRect.left;
+            sourceNode.classList.add(isRightSide ? 'tilt-right' : 'tilt-left');
+
+            // Position and color the pouring stream
+            const topColor = bottles[fromIdx][bottles[fromIdx].length - 1];
+            stream.style.backgroundColor = topColor;
+            
+            const startX = (sourceRect.left + sourceRect.width / 2) - boardRect.left;
+            const startY = sourceRect.top - boardRect.top + 20;
+            const endY = targetRect.top - boardRect.top + 40;
+            
+            stream.style.left = `${startX - 4}px`;
+            stream.style.top = `${startY}px`;
+            stream.style.height = `${Math.abs(endY - startY)}px`;
+            stream.style.opacity = '1';
+
+            await new Promise(resolve => setTimeout(resolve, 350));
+
+            stream.style.opacity = '0';
+            sourceNode.classList.remove('tilt-left', 'tilt-right');
+            await new Promise(resolve => setTimeout(resolve, 200));
+        }
+
+        function executePour(fromIdx, toIdx) {
+            const source = bottles[fromIdx];
+            const target = bottles[toIdx];
+            const topColor = source[source.length - 1];
+
+            while (
+                source.length > 0 &&
+                source[source.length - 1] === topColor &&
+                target.length < BOTTLE_CAPACITY
+            ) {
+                target.push(source.pop());
+            }
+        }
+
+        function updateStatsDisplay() {
+            document.getElementById('tries-indicator').innerText = `Tries: ${remainingTries}`;
+            document.getElementById('hints-indicator').innerText = `💡 Hint (${remainingHints})`;
+        }
+
+        function checkGameState() {
+            const isWin = bottles.every(b => b.length === 0 || (b.length === BOTTLE_CAPACITY && b.every(c => c === b[0])));
+            if (isWin) {
+                // Star calculation formula based on leftover tries ratio
+                const maxAllowed = Math.max(12, 48 - (currentLevel * 1));
+                const ratio = remainingTries / maxAllowed;
+                let earnedStars = 1;
+                if (ratio > 0.45) earnedStars = 3;
+                else if (ratio > 0.2) earnedStars = 2;
+
+                // Save or update score in localStorage
+                if (!levelData[currentLevel] || levelData[currentLevel].stars < earnedStars) {
+                    levelData[currentLevel] = { stars: earnedStars };
+                    saveProgress();
+                }
+
+                let starString = '';
+                for(let s=0; s<earnedStars; s++) starString += '⭐';
+                for(let s=earnedStars; s<3; s++) starString += '☆';
+
+                document.getElementById('win-stars').innerText = starString;
+                document.getElementById('win-text').innerText = `Solved with ${remainingTries} tries left!`;
+                document.getElementById('win-modal').classList.add('active');
+                return;
+            }
+
+            if (remainingTries <= 0) {
+                document.getElementById('lose-modal').classList.add('active');
+            }
+        }
+    </script>
+</body>
+</html>
