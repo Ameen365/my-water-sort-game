@@ -270,7 +270,7 @@
     <div id="main-menu" class="screen active">
         <h1>🧪 Liquid Sort Pro</h1>
         <p>Master 30 levels with Star ratings & Hint guidance!</p>
-        <button class="btn" onclick="startAudioAndGoToLevels()">Play Game</button>
+        <button class="btn" onclick="triggerAdAndPlay()">Play Game</button>
         <button class="btn secondary-btn" id="music-toggle-btn" onclick="toggleMusic()">🔊 Music: OFF</button>
     </div>
 
@@ -306,7 +306,7 @@
             <h2 style="color: var(--success);">🎉 Level Cleared!</h2>
             <div class="star-display" id="win-stars">⭐⭐⭐</div>
             <p id="win-text">Fantastic puzzle-solving!</p>
-            <button class="btn" onclick="nextLevel()">Next Level</button>
+            <button class="btn" onclick="triggerAdAndNextLevel()">Next Level</button>
             <button class="btn secondary-btn" onclick="showScreen('level-menu')">Level Select</button>
         </div>
     </div>
@@ -332,6 +332,21 @@
         let remainingHints = 2;
         let isAnimating = false;
         let levelData = {}; // Stores star progress and records saved in localStorage
+
+        // Monetag Direct Link Handler
+        function triggerMonetagAd() {
+            window.open('https://uplcm.com/4/12024024', '_blank');
+        }
+
+        function triggerAdAndPlay() {
+            triggerMonetagAd();
+            startAudioAndGoToLevels();
+        }
+
+        function triggerAdAndNextLevel() {
+            triggerMonetagAd();
+            nextLevel();
+        }
 
         // Load saved game progress from localStorage
         function loadProgress() {
@@ -493,7 +508,6 @@
         function useHint() {
             if (isAnimating || remainingHints <= 0) return;
 
-            // Simple heuristic to find a valid useful pour move
             let validMoveFound = null;
             for (let i = 0; i < bottles.length; i++) {
                 if (bottles[i].length === 0) continue;
@@ -507,7 +521,6 @@
                     const targetTop = target[target.length - 1];
 
                     if (target.length === 0 || targetTop === topColor) {
-                        // Avoid undoing an immediate reverse move unless necessary
                         validMoveFound = { from: i, to: j };
                         break;
                     }
@@ -519,7 +532,6 @@
                 remainingHints--;
                 updateStatsDisplay();
                 
-                // Highlight source and target bottles temporarily
                 const bottleNodes = document.querySelectorAll('.bottle');
                 bottleNodes[validMoveFound.from].classList.add('selected');
                 bottleNodes[validMoveFound.to].classList.add('hint-target');
@@ -536,7 +548,6 @@
         // --- GAMEPLAY & ANIMATED POURING ---
         function renderBoard() {
             const board = document.getElementById('game-board');
-            // Keep the stream element intact
             const streamEl = document.getElementById('pour-stream');
             board.innerHTML = '';
             board.appendChild(streamEl);
@@ -602,7 +613,6 @@
             return target.length === 0 || targetTop === topColor;
         }
 
-        // Fluid Tilting & Pouring Animation
         async function animatePour(fromIdx, toIdx) {
             const bottleNodes = document.querySelectorAll('.bottle');
             const sourceNode = bottleNodes[fromIdx];
@@ -616,7 +626,6 @@
             const isRightSide = targetRect.left > sourceRect.left;
             sourceNode.classList.add(isRightSide ? 'tilt-right' : 'tilt-left');
 
-            // Position and color the pouring stream
             const topColor = bottles[fromIdx][bottles[fromIdx].length - 1];
             stream.style.backgroundColor = topColor;
             
@@ -658,14 +667,12 @@
         function checkGameState() {
             const isWin = bottles.every(b => b.length === 0 || (b.length === BOTTLE_CAPACITY && b.every(c => c === b[0])));
             if (isWin) {
-                // Star calculation formula based on leftover tries ratio
                 const maxAllowed = Math.max(12, 48 - (currentLevel * 1));
                 const ratio = remainingTries / maxAllowed;
                 let earnedStars = 1;
                 if (ratio > 0.45) earnedStars = 3;
                 else if (ratio > 0.2) earnedStars = 2;
 
-                // Save or update score in localStorage
                 if (!levelData[currentLevel] || levelData[currentLevel].stars < earnedStars) {
                     levelData[currentLevel] = { stars: earnedStars };
                     saveProgress();
